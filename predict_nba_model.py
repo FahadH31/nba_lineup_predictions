@@ -42,7 +42,6 @@ def encode_features(df, player_encoder, team_encoder, season_encoder):
         df[f'away_{i}_encoded'] = player_encoder.transform(df[f'away_{i}'])
     return df
 
-
 data_dir = './csv_files'
 df = load_and_preprocess_data(data_dir) # Dataframe to store data from all csv files
 
@@ -139,3 +138,87 @@ def predict_fifth_player(home_team, season, home_players_4, away_players_5, star
     top_k_indices = np.argsort(probas)[-k:][::-1]
     top_k_players = [eligible_players[i] for i in top_k_indices]
     return top_k_players
+
+# Function to calculate top-k accuracy
+def top_k_accuracy(true_player, predicted_players, k):
+    return true_player in predicted_players[:k]
+
+def generate_test_cases(df, num_test_cases=5):
+    # Filter rows where outcome is 1
+    df_filtered = df[df['outcome'] == 1]
+    
+    # Check if there are enough rows to sample
+    if len(df_filtered) < num_test_cases:
+        raise ValueError(f"Not enough rows with outcome = 1 to generate {num_test_cases} test cases.")
+    
+    test_cases = []
+    for _ in range(num_test_cases):
+        # Randomly select a row from the filtered dataset
+        random_row = df_filtered.sample(1).iloc[0]
+        
+        # Extract home team, season, home players, away players, and starting minute
+        home_team = random_row['home_team']
+        season = random_row['season']
+        home_players_4 = sorted([random_row[f'home_{i}'] for i in range(4)])  # First 4 home players
+        away_players_5 = sorted([random_row[f'away_{i}'] for i in range(5)])  # All 5 away players
+        starting_min = random_row['starting_min']
+        
+        # The true fifth player is the fifth home player in the row
+        true_fifth_player = random_row['home_4']
+        
+        # Append the test case
+        test_cases.append({
+            'home_team': home_team,
+            'season': season,
+            'home_players_4': home_players_4,
+            'away_players_5': away_players_5,
+            'starting_min': starting_min,
+            'true_fifth_player': true_fifth_player
+        })
+    return test_cases
+
+def evaluate_top_k_accuracy(test_cases, k=3):
+    top_k_accuracies = []
+    for case in test_cases:
+        # Predict top 3 players for the 5th spot
+        top_k_players = predict_fifth_player(
+            case['home_team'],
+            case['season'],
+            case['home_players_4'],
+            case['away_players_5'],
+            case['starting_min'],
+            k
+        )
+        
+        if top_k_players is None:
+            print(f"Skipping test case due to missing data or encoding issues.")
+            continue
+        
+        # Calculate if the real player in the top 3 choices
+        accuracy = top_k_accuracy(case['true_fifth_player'], top_k_players, k)
+        top_k_accuracies.append(accuracy)
+        
+        # Results for the current test case
+        print(f"Test Case: {case['home_team']} ({case['season']})")
+        print(f"Home Players (4): {case['home_players_4']}")
+        print(f"Away Players (5): {case['away_players_5']}")
+        print(f"True Fifth Player: {case['true_fifth_player']}")
+        print(f"Top {k} Predicted Players: {top_k_players}")
+        print(f"Top-{k} Accuracy: {accuracy}")
+        print("-" * 50)
+    
+    # Calculate overall accuracy
+    overall_accuracy = np.mean(top_k_accuracies)
+    print(f"Overall Top-{k} Accuracy: {overall_accuracy:.2f}")
+
+# Generate test cases only from rows where outcome = 1
+num_test_cases = 100
+try:
+    test_cases = generate_test_cases(df, num_test_cases)
+except ValueError as e:
+    print(e)
+    test_cases = []
+
+if test_cases:
+    k = 3  # k value (how many players to find for each lineup)
+    evaluate_top_k_accuracy(test_cases, k)
