@@ -143,27 +143,24 @@ def predict_fifth_player(home_team, season, home_players_4, away_players_5, star
 def top_k_accuracy(true_player, predicted_players, k):
     return true_player in predicted_players[:k]
 
+# Function to generate test cases automatically
 def generate_test_cases(df, num_test_cases=5):
     # Filter rows where outcome is 1
     df_filtered = df[df['outcome'] == 1]
-    
-    # Check if there are enough rows to sample
-    if len(df_filtered) < num_test_cases:
-        raise ValueError(f"Not enough rows with outcome = 1 to generate {num_test_cases} test cases.")
     
     test_cases = []
     for _ in range(num_test_cases):
         # Randomly select a row from the filtered dataset
         random_row = df_filtered.sample(1).iloc[0]
         
-        # Extract home team, season, home players, away players, and starting minute
+        # Extract the parameters to be used in the model
         home_team = random_row['home_team']
         season = random_row['season']
         home_players_4 = sorted([random_row[f'home_{i}'] for i in range(4)])  # First 4 home players
         away_players_5 = sorted([random_row[f'away_{i}'] for i in range(5)])  # All 5 away players
         starting_min = random_row['starting_min']
         
-        # The true fifth player is the fifth home player in the row
+        # Store the actual 5th player (for calculating accuracy)
         true_fifth_player = random_row['home_4']
         
         # Append the test case
@@ -189,10 +186,6 @@ def evaluate_top_k_accuracy(test_cases, k=3):
             case['starting_min'],
             k
         )
-        
-        if top_k_players is None:
-            print(f"Skipping test case due to missing data or encoding issues.")
-            continue
         
         # Calculate if the real player in the top 3 choices
         accuracy = top_k_accuracy(case['true_fifth_player'], top_k_players, k)
