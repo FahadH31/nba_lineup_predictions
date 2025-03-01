@@ -79,18 +79,18 @@ model = RandomForestClassifier(n_estimators=100, max_depth=20, random_state=42, 
 model.fit(X, y)
 
 # Save model and encoders
-joblib.dump(model, 'nba_lineup_model.pkl')
-joblib.dump(player_encoder, 'player_encoder.pkl')
-joblib.dump(team_encoder, 'team_encoder.pkl')
-joblib.dump(season_encoder, 'season_encoder.pkl')
+joblib.dump(model, 'encoders/nba_lineup_model.pkl')
+joblib.dump(player_encoder, 'encoders/player_encoder.pkl')
+joblib.dump(team_encoder, 'encoders/team_encoder.pkl')
+joblib.dump(season_encoder, 'encoders/season_encoder.pkl')
 
 # Prediction function with top-k predictions
 def predict_fifth_player(home_team, season, home_players_4, away_players_5, starting_min, k=5):
     # Load encoders and model
-    model = joblib.load('nba_lineup_model.pkl')
-    player_encoder = joblib.load('player_encoder.pkl')
-    team_encoder = joblib.load('team_encoder.pkl')
-    season_encoder = joblib.load('season_encoder.pkl')
+    model = joblib.load('encoders/nba_lineup_model.pkl')
+    player_encoder = joblib.load('encoders/player_encoder.pkl')
+    team_encoder = joblib.load('encoders/team_encoder.pkl')
+    season_encoder = joblib.load('encoders/season_encoder.pkl')
     
     # Get eligible players
     key = (home_team, season)
