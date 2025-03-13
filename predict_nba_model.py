@@ -5,8 +5,9 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
 import os, joblib, numpy as np
 
+# ------------- LOADING & PROCESSING DATA ------------- # 
 # Function to load and preprocess the data
-def load_and_preprocess_data(data_dir):
+def load_data(data_dir):
     all_files = [os.path.join(data_dir, f) for f in os.listdir(data_dir) if f.endswith('.csv')]
     df_list = []
 
@@ -15,7 +16,7 @@ def load_and_preprocess_data(data_dir):
         df_list.append(df)
     df = pd.concat(df_list, ignore_index=True)
     
-    # Sort all players alphabetically in the dataframe
+    # Function to sort all players alphabetically in the dataframe
     def sort_players(row):
         home_players = sorted([row[f'home_{i}'] for i in range(5)])
         away_players = sorted([row[f'away_{i}'] for i in range(5)])
@@ -23,6 +24,8 @@ def load_and_preprocess_data(data_dir):
             row[f'home_{i}'] = home_players[i]
             row[f'away_{i}'] = away_players[i]
         return row
+    
+    # Apply the sorting on the dataframe
     df = df.apply(sort_players, axis=1)
     
     return df
@@ -47,111 +50,63 @@ def encode_features(df, player_encoder, team_encoder, season_encoder):
     return df
 
 
-# Main Code
-data_dir = './csv_files'
-df = load_and_preprocess_data(data_dir) # Initialize dataframe
-
-# Create dictionary with rosters for each team and season
-roster_dict = create_roster(df)
-
-# Initialize encoders
-player_encoder = LabelEncoder()
-team_encoder = LabelEncoder()
-season_encoder = LabelEncoder()
-
-# Fit all encoders on the data
-# Get all players from all columns (avoiding duplicates)
-all_players = pd.unique(df[[f'home_{i}' for i in range(5)] + [f'away_{i}' for i in range(5)]].values.ravel())
-player_encoder.fit(all_players)
-
-teams = pd.unique(pd.concat([df['home_team'], df['away_team']]))
-team_encoder.fit(teams)
-
-seasons = pd.unique(df['season'])
-season_encoder.fit(seasons)
-
-# Encode the dataframe
-df = encode_features(df, player_encoder, team_encoder, season_encoder)
-
-# Prepare features and target
-features = ['home_team_encoded', 'season_encoded', 'starting_min']
-for i in range(5):
-    features.extend([f'home_{i}_encoded', f'away_{i}_encoded'])
-
-X = df[features]
-y = df['outcome'].apply(lambda x: 1 if x == 1 else 0)  # Convert outcome to binary
-
-# Train Random Forest model
-model = RandomForestClassifier(n_estimators=100, max_depth=20, random_state=42, n_jobs=-1)
-model.fit(X, y)
-
-# Save model and encoders
-joblib.dump(model, 'encoders/nba_lineup_model.pkl')
-joblib.dump(player_encoder, 'encoders/player_encoder.pkl')
-joblib.dump(team_encoder, 'encoders/team_encoder.pkl')
-joblib.dump(season_encoder, 'encoders/season_encoder.pkl')
-
-# Prediction function, predicts best 5th player to maximize winning. Uses maximum win probability.
-def predict_fifth_player(home_team, season, home_players_4, away_players_5, k=5):
+# ------------- PREDICTION, TESTING ACCURACY ------------- #
+# Prediction function, predicts 3 best options for 5th player to maximize winning.
+def predict_fifth_player(home_team, season, home_players_4, away_players_5, k):
     # Load encoders and model
     model = joblib.load('encoders/nba_lineup_model.pkl')
     player_encoder = joblib.load('encoders/player_encoder.pkl')
     team_encoder = joblib.load('encoders/team_encoder.pkl')
     season_encoder = joblib.load('encoders/season_encoder.pkl')
     
-    # Get eligible players for the input test data
+    # Get the appropriate roster (eligible players) based on home team and season of input case
     key = (home_team, season)
-    eligible_players = roster_dict.get(key, set())
+    eligible_players = rosters_dict.get(key, set())
     eligible_players = eligible_players - set(home_players_4)
     if not eligible_players:
         return None
     eligible_players = list(eligible_players)
     
-    # Encode base features from input test data
-    try:
-        home_team_enc = team_encoder.transform([home_team])[0]
-        season_enc = season_encoder.transform([season])[0]
-    except:
-        return None 
+    # Encode features from input case
+    home_team_enc = team_encoder.transform([home_team])[0]
+    season_enc = season_encoder.transform([season])[0]
+    away_encoded = [player_encoder.transform([p])[0] for p in away_players_5]
     
-    # Encode away players
-    away_sorted = sorted(away_players_5)
-    try:
-        away_encoded = [player_encoder.transform([p])[0] for p in away_sorted]
-    except ValueError as e:
-        return None
-    
-    # Prepare each candidate
+    # Evaluate all eligible players
     candidates = []
     for candidate in eligible_players:
-        home_lineup = sorted(home_players_4 + [candidate])
-        try:
-            home_encoded = [player_encoder.transform([p])[0] for p in home_lineup]
-        except ValueError:
-            continue 
-        # Construct feature vector
-        feature_vec = [home_team_enc, season_enc]
+        # Create and encode home lineup with the current eligible player
+        home_lineup = sorted(home_players_4 + [candidate])  # Sorting here to ensure that when the candidate is appended, the lineup stays sorted as in the dataset and trained model
+        home_encoded = [player_encoder.transform([p])[0] for p in home_lineup]
+
+        # Features to be saved in the dataframe (encoded versions of all the input case info)
+        features = [home_team_enc, season_enc]
         for i in range(5):
-            feature_vec.extend([home_encoded[i], away_encoded[i]])
-        # Convert to DataFrame with feature names
-        candidate_df = pd.DataFrame([feature_vec], columns=features)
-        candidates.append(candidate_df)
+            features.extend([home_encoded[i]])
+        for i in range(5):
+            features.extend([away_encoded[i]])
+
+        # Convert the candidate data into a dataframe (with column names) (this is necessary because the model expects the input as a dataframe)
+        candidate_df = pd.DataFrame(
+            [features], columns=['home_team_encoded', 'season_encoded', 
+                                    'home_0_encoded', 'home_1_encoded', 'home_2_encoded', 'home_3_encoded', 'home_4_encoded',
+                                    'away_0_encoded', 'away_1_encoded', 'away_2_encoded', 'away_3_encoded', 'away_4_encoded'])
+        candidates.append(candidate_df) # Save each dataframe into the list of candidates
     
     if not candidates:
         return None
     
-    # Predict probabilities
-    probas = model.predict_proba(pd.concat(candidates))[:, 1]
-    top_k_indices = np.argsort(probas)[-k:][::-1]
+    # Use model to predict winning probabilities
+    all_candidates = pd.concat((candidates)) # Combine each dataframe in the list into one large dataframe
+    probs = model.predict_proba(all_candidates)[:, 1] # Model predicts the win probability for each candidate lineup.
+    
+    # Return the top-3 players that provide the highest winning %
+    top_k_indices = np.argsort(probs)[-k:][::-1]
     top_k_players = [eligible_players[i] for i in top_k_indices]
     return top_k_players
 
-# Function to calculate top-k accuracy
-def top_k_accuracy(true_player, predicted_players, k):
-    return true_player in predicted_players[:k]
-
-# Function to generate test cases automatically
-def generate_test_cases(df, num_test_cases=5):
+# Function to automatically generate test cases
+def generate_test_cases(df, num_test_cases):
     # Filter rows where outcome is 1
     df_filtered = df[df['outcome'] == 1]
     
@@ -179,10 +134,10 @@ def generate_test_cases(df, num_test_cases=5):
         })
     return test_cases
 
-def evaluate_top_k_accuracy(test_cases, k=3):
+def evaluate_accuracy(test_cases, k):
     top_k_accuracies = []
     for case in test_cases:
-        # Predict top 3 players for the 5th spot
+        # Return top 3 players for the current test case
         top_k_players = predict_fifth_player(
             case['home_team'],
             case['season'],
@@ -191,31 +146,71 @@ def evaluate_top_k_accuracy(test_cases, k=3):
             k
         )
         
-        # Calculate if the real player in the top 3 choices
-        accuracy = top_k_accuracy(case['true_fifth_player'], top_k_players, k)
-        top_k_accuracies.append(accuracy)
+        # Calculate if the real player is in the top 3 choices
+        if(case['true_fifth_player'] in top_k_players[:k]):
+            success = True
+        else:
+            success = False
+
+        top_k_accuracies.append(success)
         
-        # Results for the current test case
+        # Print results for the current test case
         print(f"Test Case: {case['home_team']} ({case['season']})")
         print(f"Home Players (4): {case['home_players_4']}")
         print(f"Away Players (5): {case['away_players_5']}")
         print(f"True Fifth Player: {case['true_fifth_player']}")
         print(f"Top {k} Predicted Players: {top_k_players}")
-        print(f"Top-{k} Accuracy: {accuracy}")
+        print(f"Success: {success}")
         print("-" * 50)
     
     # Calculate overall accuracy
     overall_accuracy = np.mean(top_k_accuracies)
     print(f"Overall Top-{k} Accuracy: {overall_accuracy:.2f}")
 
-# Generate test cases
-num_test_cases = 500
-try:
-    test_cases = generate_test_cases(df, num_test_cases)
-except ValueError as e:
-    print(e)
-    test_cases = []
 
-if test_cases:
-    k = 3  # k value (how many players to find for each lineup)
-    evaluate_top_k_accuracy(test_cases, k)
+# ------------- MAIN CODE ------------- #
+data_dir = './csv_files'
+df = load_data(data_dir) # Initialize dataframe
+
+rosters_dict = create_roster(df) # Intialize the dictionary with all eligible players for each team + season
+
+# Initialize encoders
+player_encoder = LabelEncoder()
+team_encoder = LabelEncoder()
+season_encoder = LabelEncoder()
+
+# Fit all encoders on the data
+all_players = pd.unique(df[[f'home_{i}' for i in range(5)] + [f'away_{i}' for i in range(5)]].values.ravel()) # Player encoder for all player columns
+player_encoder.fit(all_players)
+teams = pd.unique(pd.concat([df['home_team'], df['away_team']])) # Team encoder
+team_encoder.fit(teams)
+seasons = pd.unique(df['season']) # Season encoder
+season_encoder.fit(seasons)
+
+# Add encoded (numerical) versions of each column to the dataframe
+df = encode_features(df, player_encoder, team_encoder, season_encoder)
+
+    # ------------- TRAINING MODEL ------------- #
+# Gather input features and target
+X = df[['home_team_encoded', 'season_encoded', 
+       'home_0_encoded', 'home_1_encoded', 'home_2_encoded', 'home_3_encoded', 'home_4_encoded',
+       'away_0_encoded', 'away_1_encoded', 'away_2_encoded', 'away_3_encoded', 'away_4_encoded']]
+y = df['outcome']
+
+# Train Random Forest model
+model = RandomForestClassifier(n_estimators=100, max_depth=20, random_state=42, n_jobs=-1)
+model.fit(X, y)
+
+# Save model and encoders
+joblib.dump(model, 'encoders/nba_lineup_model.pkl')
+joblib.dump(player_encoder, 'encoders/player_encoder.pkl')
+joblib.dump(team_encoder, 'encoders/team_encoder.pkl')
+joblib.dump(season_encoder, 'encoders/season_encoder.pkl')
+
+# Generate test cases
+num_test_cases = 100
+test_cases = generate_test_cases(df, num_test_cases)
+
+# Evaluate model accuracy (with top-3 predicted players)
+k = 3
+evaluate_accuracy(test_cases, k)
