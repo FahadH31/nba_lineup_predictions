@@ -1,0 +1,416 @@
+NBA Team Rosters for 2016 Season
+========================================
+
+ATL (10 players):
+  - Al Horford
+  - Jeff Teague
+  - Kent Bazemore
+  - Kyle Korver
+  - Lamar Patterson
+  - Mike Muscala
+  - Mike Scott
+  - Paul Millsap
+  - Thabo Sefolosha
+  - Tiago Splitter
+
+BOS (7 players):
+  - Avery Bradley
+  - James Young
+  - Jonas Jerebko
+  - Marcus Smart
+  - R.J. Hunter
+  - Terry Rozier
+  - Tyler Zeller
+
+BRK (16 players):
+  - Andrea Bargnani
+  - Bojan Bogdanovic
+  - Brook Lopez
+  - Chris McCullough
+  - Donald Sloan
+  - Jarrett Jack
+  - Joe Johnson
+  - Markel Brown
+  - Rondae Hollis-Jefferson
+  - Sean Kilpatrick
+  - Sergey Karasev
+  - Shane Larkin
+  - Thaddeus Young
+  - Thomas Robinson
+  - Wayne Ellington
+  - Willie Reed
+
+CHA (11 players):
+  - Al Jefferson
+  - Cody Zeller
+  - Courtney Lee
+  - Frank Kaminsky
+  - Jeremy Lamb
+  - Jeremy Lin
+  - Kemba Walker
+  - Marvin Williams
+  - Nicolas Batum
+  - P.J. Hairston
+  - Spencer Hawes
+
+CHI (12 players):
+  - Bobby Portis
+  - Derrick Rose
+  - Doug McDermott
+  - E'Twaun Moore
+  - Jimmy Butler
+  - Joakim Noah
+  - Kirk Hinrich
+  - Mike Dunleavy
+  - Nikola Mirotic
+  - Pau Gasol
+  - Taj Gibson
+  - Tony Snell
+
+CLE (14 players):
+  - Iman Shumpert
+  - J.R. Smith
+  - James Jones
+  - Jared Cunningham
+  - Joe Harris
+  - Jordan McRae
+  - Kevin Love
+  - Kyrie Irving
+  - LeBron James
+  - Matthew Dellavedova
+  - Mo Williams
+  - Richard Jefferson
+  - Timofey Mozgov
+  - Tristan Thompson
+
+DAL (10 players):
+  - Chandler Parsons
+  - Charlie Villanueva
+  - David Lee
+  - Deron Williams
+  - Devin Harris
+  - Dirk Nowitzki
+  - J.J. Barea
+  - Raymond Felton
+  - Wesley Matthews
+  - Zaza Pachulia
+
+DEN (12 players):
+  - D.J. Augustin
+  - Danilo Gallinari
+  - Darrell Arthur
+  - Emmanuel Mudiay
+  - Gary Harris
+  - JaKarr Sampson
+  - Jameer Nelson
+  - Joffrey Lauvergne
+  - Jusuf Nurkic
+  - Kenneth Faried
+  - Nikola Jokic
+  - Will Barton
+
+DET (9 players):
+  - Aron Baynes
+  - Ersan Ilyasova
+  - Kentavious Caldwell-Pope
+  - Marcus Morris
+  - Reggie Bullock
+  - Reggie Jackson
+  - Stanley Johnson
+  - Steve Blake
+  - Tobias Harris
+
+GSW (10 players):
+  - Andre Iguodala
+  - Andrew Bogut
+  - Brandon Rush
+  - Draymond Green
+  - Festus Ezeli
+  - Harrison Barnes
+  - Klay Thompson
+  - Leandro Barbosa
+  - Shaun Livingston
+  - Stephen Curry
+
+HOU (12 players):
+  - Clint Capela
+  - Corey Brewer
+  - Donatas Motiejunas
+  - Dwight Howard
+  - James Harden
+  - Jason Terry
+  - Marcus Thornton
+  - Montrezl Harrell
+  - Patrick Beverley
+  - Terrence Jones
+  - Trevor Ariza
+  - Ty Lawson
+
+IND (11 players):
+  - C.J. Miles
+  - George Hill
+  - Ian Mahinmi
+  - Jordan Hill
+  - Lavoy Allen
+  - Monta Ellis
+  - Myles Turner
+  - Paul George
+  - Rodney Stuckey
+  - Solomon Hill
+  - Ty Lawson
+
+LAC (14 players):
+  - Austin Rivers
+  - C.J. Wilcox
+  - Chris Paul
+  - Cole Aldrich
+  - DeAndre Jordan
+  - J.J. Redick
+  - Jamal Crawford
+  - Jeff Green
+  - Josh Smith
+  - Lance Stephenson
+  - Luc Mbah a Moute
+  - Pablo Prigioni
+  - Paul Pierce
+  - Wesley Johnson
+
+LAL (14 players):
+  - Anthony Brown
+  - Brandon Bass
+  - D'Angelo Russell
+  - Jordan Clarkson
+  - Julius Randle
+  - Kobe Bryant
+  - Larry Nance
+  - Lou Williams
+  - Marcelo Huertas
+  - Metta World Peace
+  - Nick Young
+  - Roy Hibbert
+  - Ryan Kelly
+  - Tarik Black
+
+MEM (13 players):
+  - Chris Andersen
+  - Courtney Lee
+  - JaMychal Green
+  - Jeff Green
+  - Jordan Farmar
+  - Lance Stephenson
+  - Marc Gasol
+  - Mario Chalmers
+  - Matt Barnes
+  - Mike Conley
+  - Tony Allen
+  - Xavier Munford
+  - Zach Randolph
+
+MIA (13 players):
+  - Amar'e Stoudemire
+  - Beno Udrih
+  - Chris Bosh
+  - Dwyane Wade
+  - Gerald Green
+  - Goran Dragic
+  - Hassan Whiteside
+  - Joe Johnson
+  - Josh McRoberts
+  - Josh Richardson
+  - Justise Winslow
+  - Luol Deng
+  - Tyler Johnson
+
+MIL (9 players):
+  - Giannis Antetokounmpo
+  - Greg Monroe
+  - Jabari Parker
+  - Jerryd Bayless
+  - John Henson
+  - Khris Middleton
+  - Michael Carter-Williams
+  - O.J. Mayo
+  - Rashad Vaughn
+
+MIN (11 players):
+  - Andrew Wiggins
+  - Gorgui Dieng
+  - Greg Smith
+  - Karl-Anthony Towns
+  - Kevin Martin
+  - Nemanja Bjelica
+  - Ricky Rubio
+  - Shabazz Muhammad
+  - Tayshaun Prince
+  - Tyus Jones
+  - Zach LaVine
+
+NOK (14 players):
+  - Alexis Ajinca
+  - Alonzo Gee
+  - Anthony Davis
+  - Dante Cunningham
+  - Eric Gordon
+  - Ish Smith
+  - James Ennis
+  - Jrue Holiday
+  - Kendrick Perkins
+  - Norris Cole
+  - Omer Asik
+  - Ryan Anderson
+  - Tim Frazier
+  - Toney Douglas
+
+NYK (13 players):
+  - Arron Afflalo
+  - Carmelo Anthony
+  - Cleanthony Early
+  - Derrick Williams
+  - Jerian Grant
+  - Jose Calderon
+  - Kevin Seraphin
+  - Kristaps Porzingis
+  - Lance Thomas
+  - Langston Galloway
+  - Lou Amundson
+  - Robin Lopez
+  - Sasha Vujacic
+
+OKC (12 players):
+  - Andre Roberson
+  - Anthony Morrow
+  - Cameron Payne
+  - Dion Waiters
+  - Enes Kanter
+  - Kevin Durant
+  - Kyle Singler
+  - Nick Collison
+  - Randy Foye
+  - Russell Westbrook
+  - Serge Ibaka
+  - Steven Adams
+
+ORL (11 players):
+  - Aaron Gordon
+  - Andrew Nicholson
+  - C.J. Watson
+  - Dewayne Dedmon
+  - Elfrid Payton
+  - Evan Fournier
+  - Jason Smith
+  - Mario Hezonja
+  - Nikola Vucevic
+  - Shabazz Napier
+  - Victor Oladipo
+
+PHI (13 players):
+  - Carl Landry
+  - Christian Wood
+  - Hollis Thompson
+  - Isaiah Canaan
+  - Ish Smith
+  - JaKarr Sampson
+  - Jahlil Okafor
+  - Jerami Grant
+  - Nerlens Noel
+  - Nik Stauskas
+  - Richaun Holmes
+  - Robert Covington
+  - T.J. McConnell
+
+PHO (17 players):
+  - Alan Williams
+  - Alex Len
+  - Archie Goodwin
+  - Brandon Knight
+  - Chase Budinger
+  - Devin Booker
+  - Eric Bledsoe
+  - Jon Leuer
+  - Jordan McRae
+  - Markieff Morris
+  - Mirza Teletovic
+  - P.J. Tucker
+  - Phil Pressey
+  - Ronnie Price
+  - Sonny Weems
+  - T.J. Warren
+  - Tyson Chandler
+
+POR (10 players):
+  - Al-Farouq Aminu
+  - Allen Crabbe
+  - CJ McCollum
+  - Damian Lillard
+  - Ed Davis
+  - Gerald Henderson
+  - Mason Plumlee
+  - Maurice Harkless
+  - Meyers Leonard
+  - Noah Vonleh
+
+SAC (9 players):
+  - Ben McLemore
+  - Darren Collison
+  - James Anderson
+  - Kosta Koufos
+  - Marco Belinelli
+  - Omri Casspi
+  - Rajon Rondo
+  - Rudy Gay
+  - Willie Cauley-Stein
+
+SAS (12 players):
+  - Boris Diaw
+  - Danny Green
+  - David West
+  - Jonathon Simmons
+  - Kawhi Leonard
+  - Kevin Martin
+  - Kyle Anderson
+  - LaMarcus Aldridge
+  - Manu Ginobili
+  - Patty Mills
+  - Tim Duncan
+  - Tony Parker
+
+TOR (13 players):
+  - Bismack Biyombo
+  - Cory Joseph
+  - DeMar DeRozan
+  - DeMarre Carroll
+  - Delon Wright
+  - James Johnson
+  - Jason Thompson
+  - Jonas Valanciunas
+  - Kyle Lowry
+  - Luis Scola
+  - Norman Powell
+  - Patrick Patterson
+  - Terrence Ross
+
+UTA (11 players):
+  - Chris Johnson
+  - Derrick Favors
+  - Gordon Hayward
+  - Jeff Withey
+  - Joe Ingles
+  - Raul Neto
+  - Rodney Hood
+  - Shelvin Mack
+  - Trevor Booker
+  - Trey Burke
+  - Trey Lyles
+
+WAS (10 players):
+  - Bradley Beal
+  - DeJuan Blair
+  - Garrett Temple
+  - Gary Neal
+  - Jared Dudley
+  - John Wall
+  - Kelly Oubre
+  - Marcin Gortat
+  - Nene Hilario
+  - Ramon Sessions
+

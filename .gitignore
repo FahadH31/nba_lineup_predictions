@@ -1,2 +1,4 @@
-/.venv
+.venv
 encoders/*.pkl
+.ipynb_checkpoints
+testing.py
