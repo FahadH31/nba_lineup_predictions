@@ -1,6 +1,8 @@
 # Current Code:
-# Works accurately on test data from 2007-2015 (90%+ accuracy)
-# Not very accurately on unseen/untrained on test data from 2016 (59% accuracy)
+# Works accurately on test data from 2007-2015
+# Not very accurately on unseen/untrained-on test data from 2016
+# - Code sees that 2016 is not in the training data, so from the test data it builds the rosters for 2016
+# - The model will evaluate players based on historical performance, but only select players that show up in the 2016 rosters.
 
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
@@ -8,6 +10,10 @@ from sklearn.ensemble import RandomForestClassifier
 import os, joblib, numpy as np
 from collections import defaultdict
 import time
+
+# Cache for loaded model and encoders
+model_cache = {}
+encoder_cache = {}
 
 TEAM_MAPPINGS = {
     'CHO': 'CHA',  	# Charlotte Hornets
@@ -65,7 +71,7 @@ def create_rosters(train_df, test_df=None):
         new_seasons = test_seasons - train_seasons
         
         if new_seasons:
-            print(f"Building rosters for new seasons in test data: {new_seasons}")
+            print(f"Building rosters of eligible players for new seasons in test data: {new_seasons}")
             
             # Create temporary dataframe with only new seasons
             new_season_df = test_df[test_df['season'].isin(new_seasons)]
@@ -107,18 +113,29 @@ def encode_features(df, player_encoder, team_encoder, season_encoder):
         df[f'away_{i}_encoded'] = player_encoder.transform(df[f'away_{i}'])
     return df
 
+# Helper function to load model and encoders with caching
+def load_model_and_encoders():
+    if 'player_encoder' not in encoder_cache:
+        encoder_cache['player_encoder'] = joblib.load('encoders/player_encoder.pkl')
+        encoder_cache['team_encoder'] = joblib.load('encoders/team_encoder.pkl')
+        encoder_cache['season_encoder'] = joblib.load('encoders/season_encoder.pkl')
+    
+    if 'model' not in model_cache:
+        model_cache['model'] = joblib.load('encoders/nba_lineup_model.pkl')
+    
+    return (
+        model_cache['model'],
+        encoder_cache['player_encoder'],
+        encoder_cache['team_encoder'],
+        encoder_cache['season_encoder']
+    )
+
 
 # ------------- PREDICTION, TESTING ACCURACY ------------- #
 # Prediction function, predicts k best options for 5th player to maximize winning.
 def predict_fifth_player(home_team, season, home_players_4, away_players_5, k):
-    # Load encoders and model
-    if season >= 2016:
-        model = joblib.load('encoders/nba_lineup_model_recent.pkl')
-    else:
-        model = joblib.load('encoders/nba_lineup_model.pkl')
-    player_encoder = joblib.load('encoders/player_encoder.pkl')
-    team_encoder = joblib.load('encoders/team_encoder.pkl')
-    season_encoder = joblib.load('encoders/season_encoder.pkl')
+    # Load encoders and model with caching
+    model, player_encoder, team_encoder, season_encoder = load_model_and_encoders()
     
     # Get the appropriate roster (eligible players) based on home team and season of input case
     key = (home_team, season)
@@ -159,8 +176,8 @@ def predict_fifth_player(home_team, season, home_players_4, away_players_5, k):
             encoded_p = -1  # Default for unknown player
         away_encoded.append(encoded_p)
     
-    # Evaluate all eligible players
-    candidates = []
+    # Prepare batch data for all candidates at once
+    feature_rows = []
     valid_candidates = []
     
     for candidate in eligible_players:
@@ -174,7 +191,6 @@ def predict_fifth_player(home_team, season, home_players_4, away_players_5, k):
                 try:
                     encoded_p = player_encoder.transform([p])[0]
                 except ValueError:
-                    print(f"Unknown home player: {p}, skipping candidate")
                     valid_player = False
                     break
                 home_encoded.append(encoded_p)
@@ -184,34 +200,35 @@ def predict_fifth_player(home_team, season, home_players_4, away_players_5, k):
                 
             # Prepare features
             features = [home_team_enc, season_enc] + home_encoded + away_encoded
-            
-            # Create candidate DataFrame
-            candidate_df = pd.DataFrame(
-                [features], columns=['home_team_encoded', 'season_encoded', 
-                                     'home_0_encoded', 'home_1_encoded', 'home_2_encoded', 
-                                     'home_3_encoded', 'home_4_encoded',
-                                     'away_0_encoded', 'away_1_encoded', 'away_2_encoded', 
-                                     'away_3_encoded', 'away_4_encoded'])
-            candidates.append(candidate_df)
+            feature_rows.append(features)
             valid_candidates.append(candidate)
-        except Exception as e:
-            print(f"Error processing candidate {candidate}: {e}")
+            
+        except Exception:
             continue
     
-    if not candidates:
+    if not valid_candidates:
         print(f"No valid candidates found for {home_team} in season {season}")
         return None
     
-    # Use model to predict winning probabilities
-    all_candidates = pd.concat(candidates)
-    probs = model.predict_proba(all_candidates)[:, 1]
+    # Use model to predict winning probabilities for all candidates at once
+    if feature_rows:
+        features_array = np.array(feature_rows)
+        columns = ['home_team_encoded', 'season_encoded',
+                  'home_0_encoded', 'home_1_encoded', 'home_2_encoded', 
+                  'home_3_encoded', 'home_4_encoded',
+                  'away_0_encoded', 'away_1_encoded', 'away_2_encoded', 
+                  'away_3_encoded', 'away_4_encoded']
+        
+        all_candidates = pd.DataFrame(features_array, columns=columns)
+        probs = model.predict_proba(all_candidates)[:, 1]
+        
+        # Return the top-k players with highest probabilities
+        top_k_indices = np.argsort(probs)[-k:][::-1]
+        top_k_players = [valid_candidates[i] for i in top_k_indices]
+        
+        return top_k_players
     
-    # Return the top-k players with highest probabilities
-    top_k_indices = np.argsort(probs)[-k:][::-1]
-    top_k_players = [valid_candidates[i] for i in top_k_indices]
-    top_k_probs = probs[top_k_indices]
-    
-    return top_k_players
+    return None
 
 # Function to automatically generate test cases
 def generate_test_cases(test_file, labels_file):
@@ -247,147 +264,206 @@ def generate_test_cases(test_file, labels_file):
         })
     return test_cases
 
-def evaluate_accuracy(test_cases, k):
-    season_results = defaultdict(list)
+# Function to evaluate accuracy
+def evaluate_accuracy(test_cases, k_max=3):
+    """
+    Evaluate both top-1 and top-3 accuracy for the test cases
+    
+    Args:
+        test_cases: List of test case dictionaries
+        k_max: Maximum k value to evaluate (default is 3)
+    """
+    # Dictionary to store results for different k values
+    k_results = {}
+    # Only evaluate k=1 and k=3
+    for k in [1, 3]:
+        k_results[k] = defaultdict(list)
     
     for case in test_cases:
+        # Get predictions (always request max k)
         top_k_players = predict_fifth_player(
             case['home_team'],
             case['season'],
             case['home_players_4'],
             case['away_players_5'],
-            k
+            k_max
         )
         
-        success = False
-        if top_k_players:
-            success = case['true_fifth_player'] in top_k_players[:k]
-
-        season_results[case['season']].append(success)
+        # Evaluate success for k=1 and k=3
+        for k in [1, 3]:
+            success = False
+            if top_k_players:
+                success = case['true_fifth_player'] in top_k_players[:k]
+            
+            k_results[k][case['season']].append(success)
         
+        # Print detailed information for each test case
         print(f"Test Case: {case['home_team']} vs. {case['away_team']} ({case['season']})")
         print(f"Home Players (4): {case['home_players_4']}")
         print(f"Away Players (5): {case['away_players_5']}")
         print(f"True Fifth Player: {case['true_fifth_player']}")
-        print(f"Top {k} Predicted Players: {top_k_players}")
-        print(f"Success: {success}")
+        print(f"Top {k_max} Predicted Players: {top_k_players}")
+        
+        # Show success for k=1 and k=3 only
+        for k in [1, 3]:
+            success = False
+            if top_k_players:
+                success = case['true_fifth_player'] in top_k_players[:k]
+            print(f"Top-{k} Success: {success}")
+        
         print("-" * 50)
     
-    # Calculate overall accuracy
-    all_results = []
-    for season, results in season_results.items():
-        all_results.extend(results)
-    overall_accuracy = np.mean(all_results)
-    print(f"\nOverall Top-{k} Accuracy: {overall_accuracy:.2f}")
-    
-    # Calculate per-season accuracy
-    print("\nSeason-wise Accuracy:")
-    for season in sorted(season_results.keys()):
-        acc = np.mean(season_results[season])
-        count = len(season_results[season])
-        print(f"Season {season}: {acc:.2f} (n={count})")
-
+    # Print summary for k=1 and k=3 only
+    for k in [1, 3]:
+        print(f"\n===== Top-{k} Accuracy =====")
+        
+        # Calculate overall accuracy
+        all_results = []
+        for season, results in k_results[k].items():
+            all_results.extend(results)
+        overall_accuracy = np.mean(all_results)
+        print(f"Overall Top-{k} Accuracy: {overall_accuracy:.2f}")
+        
+        # Calculate per-season accuracy
+        print(f"\nSeason-wise Top-{k} Accuracy:")
+        for season in sorted(k_results[k].keys()):
+            acc = np.mean(k_results[k][season])
+            count = len(k_results[k][season])
+            print(f"Season {season}: {acc:.2f})")
 
 
 # ------------- MAIN CODE ------------- #
-start_time = time.time()
-data_dir = './training_files'
-df = load_data(data_dir)  # Initialize training dataframe
+if __name__ == '__main__':
+    start_time = time.time()
 
-# Load test data
-test_file = 'test_files/NBA_test_2016.csv'
-labels_file = 'test_files/NBA_test_labels_2016.csv'
-test_df = pd.read_csv(test_file)
-labels_df = pd.read_csv(labels_file)
+    # Create the encoders directory if it doesn't exist
+    os.makedirs('encoders', exist_ok=True)
 
-# Fix team names in test data (training data has already been fixed directly in the csv files)
-test_df['home_team'] = test_df['home_team'].replace(TEAM_MAPPINGS)
-test_df['away_team'] = test_df['away_team'].replace(TEAM_MAPPINGS)
+    # Check if model and encoders already exist
+    models_exist = (
+        os.path.exists('encoders/nba_lineup_model.pkl') and
+        os.path.exists('encoders/player_encoder.pkl') and
+        os.path.exists('encoders/team_encoder.pkl') and
+        os.path.exists('encoders/season_encoder.pkl')
+    )
 
-# Combine the true labels into test DataFrame
-test_df['true_fifth_player'] = labels_df['removed_value']
+    if not models_exist:
+        print("Model doesn't exist. Training new model...")
+        
+        # Load and process training data
+        data_dir = './training_files'
+        df = load_data(data_dir)
+        
+        # Load test data for roster creation
+        test_file = 'test_files/NBA_test.csv'
+        labels_file = 'test_files/NBA_test_labels.csv'
+        test_df = pd.read_csv(test_file)
+        labels_df = pd.read_csv(labels_file)
+        
+        # Fix team names in test data
+        test_df['home_team'] = test_df['home_team'].replace(TEAM_MAPPINGS)
+        test_df['away_team'] = test_df['away_team'].replace(TEAM_MAPPINGS)
+        
+        # Combine the true labels into test DataFrame
+        test_df['true_fifth_player'] = labels_df['removed_value']
+        
+        # Create rosters from training data and supplement with new seasons from test data
+        rosters_dict = create_rosters(df, test_df)
+        
+        # Save rosters for future use
+        joblib.dump(rosters_dict, 'encoders/rosters_dict.pkl')
+        
+        # Initialize encoders
+        player_encoder = LabelEncoder()
+        team_encoder = LabelEncoder()
+        season_encoder = LabelEncoder()
+        
+        # Get unique values from both training and test data
+        all_players_train = pd.unique(df[[f'home_{i}' for i in range(5)] + [f'away_{i}' for i in range(5)]].values.ravel())
+        all_players_test = pd.unique(test_df[[f'home_{i}' for i in range(5)] + [f'away_{i}' for i in range(5)]].values.ravel())
+        all_players_test = np.append(all_players_test, labels_df['removed_value'].values)
+        all_players = np.unique(np.concatenate([all_players_train, all_players_test]))
+        all_players = all_players[all_players != '?']  # Remove placeholder
+        
+        # Teams from both datasets
+        teams_train = pd.unique(pd.concat([df['home_team'], df['away_team']]))
+        teams_test = pd.unique(pd.concat([test_df['home_team'], test_df['away_team']]))
+        teams = np.unique(np.concatenate([teams_train, teams_test]))
+        
+        # Seasons from both datasets
+        seasons_train = pd.unique(df['season'])
+        seasons_test = pd.unique(test_df['season'])
+        seasons = np.unique(np.concatenate([seasons_train, seasons_test]))
+        
+        # Fit encoders on all data (including test data) to ensure we can encode all values
+        player_encoder.fit(all_players)
+        team_encoder.fit(teams)
+        season_encoder.fit(seasons)
+        
+        # Add encoded versions of each column to the training dataframe ONLY
+        df = encode_features(df, player_encoder, team_encoder, season_encoder)
+        
+        recent_df = df[df['season'] > 2014] # For use in new/unseen data
+        
+        # ------------- TRAINING MODEL ------------- #
+        # Training model for 2007-2015 test data
+        X = df[['home_team_encoded', 'season_encoded', 
+            'home_0_encoded', 'home_1_encoded', 'home_2_encoded', 'home_3_encoded', 'home_4_encoded',
+            'away_0_encoded', 'away_1_encoded', 'away_2_encoded', 'away_3_encoded', 'away_4_encoded']]
+        y = df['outcome']
+        
 
-# Create rosters from training data and supplement with new seasons from test data
-rosters_dict = create_rosters(df, test_df)
+        # Create weights based on recency
+        df['weight'] = df['season'].apply(lambda x: 1 + 0.2 * max(0, x - 2010))  # More weight to recent seasons
 
-# Initialize encoders
-player_encoder = LabelEncoder()
-team_encoder = LabelEncoder()
-season_encoder = LabelEncoder()
+        # Train Random Forest model
+        model = RandomForestClassifier(n_estimators=500, max_depth=None, random_state=1, n_jobs=-1)
+        model.fit(X, y, sample_weight=df['weight'])
+        
+        # Save model and encoders
+        joblib.dump(model, 'encoders/nba_lineup_model.pkl')
+        joblib.dump(player_encoder, 'encoders/player_encoder.pkl')
+        joblib.dump(team_encoder, 'encoders/team_encoder.pkl')
+        joblib.dump(season_encoder, 'encoders/season_encoder.pkl')
+        
+        print("Model trained and saved successfully.")
+    else:
+        print("Model already exists. Loading saved model.")
 
-# Get unique values from both training and test data
-all_players_train = pd.unique(df[[f'home_{i}' for i in range(5)] + [f'away_{i}' for i in range(5)]].values.ravel())
-all_players_test = pd.unique(test_df[[f'home_{i}' for i in range(5)] + [f'away_{i}' for i in range(5)]].values.ravel())
-all_players_test = np.append(all_players_test, labels_df['removed_value'].values)
-all_players = np.unique(np.concatenate([all_players_train, all_players_test]))
-all_players = all_players[all_players != '?']  # Remove placeholder
+    # Load the roster dictionary
+    if os.path.exists('encoders/rosters_dict.pkl'):
+        rosters_dict = joblib.load('encoders/rosters_dict.pkl')
+    else:
+        # If rosters don't exist but model does, we need to create them
+        print("Rosters don't exist. Creating rosters...")
+        data_dir = './training_files'
+        df = load_data(data_dir)
+        
+        test_file = 'test_files/NBA_test.csv'
+        labels_file = 'test_files/NBA_test_labels.csv'
+        test_df = pd.read_csv(test_file)
+        labels_df = pd.read_csv(labels_file)
+        
+        # Fix team names in test data
+        test_df['home_team'] = test_df['home_team'].replace(TEAM_MAPPINGS)
+        test_df['away_team'] = test_df['away_team'].replace(TEAM_MAPPINGS)
+        
+        # Combine the true labels into test DataFrame
+        test_df['true_fifth_player'] = labels_df['removed_value']
+        
+        # Create rosters
+        rosters_dict = create_rosters(df, test_df)
+        
+        # Save rosters for future use
+        joblib.dump(rosters_dict, 'encoders/rosters_dict.pkl')
 
-# Teams from both datasets
-teams_train = pd.unique(pd.concat([df['home_team'], df['away_team']]))
-teams_test = pd.unique(pd.concat([test_df['home_team'], test_df['away_team']]))
-teams = np.unique(np.concatenate([teams_train, teams_test]))
+    # ------------- TESTING MODEL ------------- #
+    # Generate test cases from test data
+    test_file = 'test_files/NBA_test.csv'
+    labels_file = 'test_files/NBA_test_labels.csv'
+    test_cases = generate_test_cases(test_file, labels_file)
+    evaluate_accuracy(test_cases)
 
-# Seasons from both datasets
-seasons_train = pd.unique(df['season'])
-seasons_test = pd.unique(test_df['season'])
-seasons = np.unique(np.concatenate([seasons_train, seasons_test]))
-
-# Fit encoders on all data (including test data) to ensure we can encode all values
-player_encoder.fit(all_players)
-team_encoder.fit(teams)
-season_encoder.fit(seasons)
-
-# Add encoded versions of each column to the training dataframe ONLY
-df = encode_features(df, player_encoder, team_encoder, season_encoder)
-
-recent_df = df[df['season'] > 2014] # For use in new/unseen data
-
-# ------------- TRAINING MODEL ------------- #
-# Training model for 2007-2015 test data
-X = df[['home_team_encoded', 'season_encoded', 
-       'home_0_encoded', 'home_1_encoded', 'home_2_encoded', 'home_3_encoded', 'home_4_encoded',
-       'away_0_encoded', 'away_1_encoded', 'away_2_encoded', 'away_3_encoded', 'away_4_encoded']]
-y = df['outcome']
-
-# Training model for 2016 (unseen) test data
-X_recent = recent_df[['home_team_encoded', 'season_encoded', 
-                     'home_0_encoded', 'home_1_encoded', 'home_2_encoded', 'home_3_encoded', 'home_4_encoded',
-                     'away_0_encoded', 'away_1_encoded', 'away_2_encoded', 'away_3_encoded', 'away_4_encoded']]
-y_recent = recent_df['outcome']
-
-# Train Random Forest models
-# For Seen Test Data
-model = RandomForestClassifier(n_estimators=300, max_depth=None, random_state=1, n_jobs=-1)
-model.fit(X, y)
-
-# For Unseen Test Data
-recent_model = RandomForestClassifier(n_estimators=300, max_depth=None, random_state=1, n_jobs=-1)
-recent_model.fit(X_recent, y_recent)
-
-# Save models and encoders
-joblib.dump(model, 'encoders/nba_lineup_model.pkl')
-joblib.dump(recent_model, 'encoders/nba_lineup_model_recent.pkl')
-joblib.dump(player_encoder, 'encoders/player_encoder.pkl')
-joblib.dump(team_encoder, 'encoders/team_encoder.pkl')
-joblib.dump(season_encoder, 'encoders/season_encoder.pkl')
-
-# ------------- TESTING MODEL ------------- #
-# Generate test cases from test data
-test_cases = generate_test_cases(test_file, labels_file)
-
-# Evaluate model accuracy with test cases
-k = 4
-evaluate_accuracy(test_cases, k)
-
-end_time = time.time()
-elapsed_time_minutes = (end_time - start_time) / 60
-print(f"Total execution time: {elapsed_time_minutes:.2f} minutes")
-
-
-# 2016 Predictions Summary/Explanation
-# - Code sees that 2016 is not in the training data, so from the test data it builds the rosters for 2016
-# - 2 models now: 
-        # One for 2007-2015 test data, trained on all 2007-2015 training data. 
-        # One is for 2016 test data, trained on only 2015 training data. 
-# - The model will evaluate players based on historical performance, 
-#   but only select players that show up in the 2016 rosters.
+    end_time = time.time()
+    elapsed_time_minutes = (end_time - start_time) / 60
+    print(f"Total execution time: {elapsed_time_minutes:.2f} minutes")

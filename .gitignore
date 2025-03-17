@@ -2,3 +2,4 @@
 encoders/*.pkl
 .ipynb_checkpoints
 testing.py
+notes.txt
