@@ -328,8 +328,7 @@ def evaluate_accuracy(test_cases, k_max=3):
         print(f"\nSeason-wise Top-{k} Accuracy:")
         for season in sorted(k_results[k].keys()):
             acc = np.mean(k_results[k][season])
-            count = len(k_results[k][season])
-            print(f"Season {season}: {acc:.2f})")
+            print(f"Season {season}: {acc:.2f}")
 
 
 # ------------- MAIN CODE ------------- #
@@ -414,7 +413,7 @@ if __name__ == '__main__':
         
 
         # Create weights based on recency
-        df['weight'] = df['season'].apply(lambda x: 1 + 0.2 * max(0, x - 2010))  # More weight to recent seasons
+        df['weight'] = df['season'].apply(lambda x: 1 + 0.1 * max(0, x - 2010))  # More weight to recent seasons
 
         # Train Random Forest model
         model = RandomForestClassifier(n_estimators=500, max_depth=None, random_state=1, n_jobs=-1)
