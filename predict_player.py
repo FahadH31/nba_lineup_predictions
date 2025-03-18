@@ -1,9 +1,3 @@
-# Current Code:
-# Works accurately on test data from 2007-2015
-# Not very accurately on unseen/untrained-on test data from 2016
-# - Code sees that 2016 is not in the training data, so from the test data it builds the rosters of eligible players for 2016.
-# - The model will evaluate players based on historical performance, but only select players that show up in the 2016 rosters.
-
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
@@ -115,12 +109,12 @@ def encode_features(df, player_encoder, team_encoder, season_encoder):
 # Function to load model and encoders with caching (reduce running time)
 def load_model_and_encoders():
     if 'player_encoder' not in encoder_cache:
-        encoder_cache['player_encoder'] = joblib.load('encoders/player_encoder.pkl')
-        encoder_cache['team_encoder'] = joblib.load('encoders/team_encoder.pkl')
-        encoder_cache['season_encoder'] = joblib.load('encoders/season_encoder.pkl')
+        encoder_cache['player_encoder'] = joblib.load('saved_files/player_encoder.pkl')
+        encoder_cache['team_encoder'] = joblib.load('saved_files/team_encoder.pkl')
+        encoder_cache['season_encoder'] = joblib.load('saved_files/season_encoder.pkl')
     
     if 'model' not in model_cache:
-        model_cache['model'] = joblib.load('encoders/nba_lineup_model.pkl')
+        model_cache['model'] = joblib.load('saved_files/nba_lineup_model.pkl')
     
     return (
         model_cache['model'],
@@ -309,8 +303,7 @@ def evaluate_accuracy(test_cases, k_max=3):
         for season in sorted(k_results[k].keys()):
             acc = np.mean(k_results[k][season])
             print(f"Season {season}: {acc:.2f}")
-
-
+    
 # ------------- MAIN CODE ------------- #
 if __name__ == '__main__':
     start_time = time.time()
@@ -320,10 +313,10 @@ if __name__ == '__main__':
 
     # Check if model and encoders already exist
     models_exist = (
-        os.path.exists('encoders/nba_lineup_model.pkl') and
-        os.path.exists('encoders/player_encoder.pkl') and
-        os.path.exists('encoders/team_encoder.pkl') and
-        os.path.exists('encoders/season_encoder.pkl')
+        os.path.exists('saved_files/nba_lineup_model.pkl') and
+        os.path.exists('saved_files/player_encoder.pkl') and
+        os.path.exists('saved_files/team_encoder.pkl') and
+        os.path.exists('saved_files/season_encoder.pkl')
     )
 
     if not models_exist:
@@ -350,7 +343,7 @@ if __name__ == '__main__':
         rosters_dict = create_rosters(df, test_df)
         
         # Save rosters for future use
-        joblib.dump(rosters_dict, 'encoders/rosters_dict.pkl')
+        joblib.dump(rosters_dict, 'saved_files/rosters_dict.pkl')
         
         # Initialize encoders
         player_encoder = LabelEncoder()
@@ -394,18 +387,18 @@ if __name__ == '__main__':
         model.fit(X, y, sample_weight=df['weight'])
         
         # Save model and encoders
-        joblib.dump(model, 'encoders/nba_lineup_model.pkl')
-        joblib.dump(player_encoder, 'encoders/player_encoder.pkl')
-        joblib.dump(team_encoder, 'encoders/team_encoder.pkl')
-        joblib.dump(season_encoder, 'encoders/season_encoder.pkl')
+        joblib.dump(model, 'saved_files/nba_lineup_model.pkl')
+        joblib.dump(player_encoder, 'saved_files/player_encoder.pkl')
+        joblib.dump(team_encoder, 'saved_files/team_encoder.pkl')
+        joblib.dump(season_encoder, 'saved_files/season_encoder.pkl')
         
         print("Model trained and saved successfully.")
     else:
         print("Model already exists. Loading saved model.")
 
     # Load the roster dictionary
-    if os.path.exists('encoders/rosters_dict.pkl'):
-        rosters_dict = joblib.load('encoders/rosters_dict.pkl')
+    if os.path.exists('saved_files/rosters_dict.pkl'):
+        rosters_dict = joblib.load('saved_files/rosters_dict.pkl')
     else:
         print("Rosters don't exist. Creating rosters...")
         data_dir = './training_files'
@@ -427,7 +420,7 @@ if __name__ == '__main__':
         rosters_dict = create_rosters(df, test_df)
         
         # Save rosters for future use
-        joblib.dump(rosters_dict, 'encoders/rosters_dict.pkl')
+        joblib.dump(rosters_dict, 'saved_files/rosters_dict.pkl')
 
     # ------------- TESTING MODEL ------------- #
     # Process test cases from test data

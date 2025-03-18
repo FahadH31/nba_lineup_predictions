@@ -1,5 +1,5 @@
 .venv
-encoders/*.pkl
 .ipynb_checkpoints
 testing.py
 notes.txt
+saved_files/nba_lineup_model.pkl
