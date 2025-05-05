@@ -13,6 +13,9 @@
 git clone https://github.com/FahadH31/nba_lineup_predictions.git
 cd nba_lineup_predictions
 
+# Install dependencies
+pip install pandas scikit-learn joblib numpy
+
 # Run the prediction model
 python predict_nba_model.py
 ```
@@ -22,6 +25,9 @@ python predict_nba_model.py
 # Clone the repository
 git clone https://github.com/FahadH31/nba_lineup_predictions.git
 cd nba_lineup_predictions
+
+# Install dependencies (if not already installed)
+!pip install pandas scikit-learn joblib numpy
 
 # Open the Jupyter Notebook
 jupyter notebook NBA_Lineup_Predictions.ipynb
